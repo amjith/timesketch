@@ -18,6 +18,7 @@ import random
 from django.db import models
 from django.contrib.contenttypes.generic import GenericRelation
 from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
 
 from timesketch.apps.acl.models import AccessControlEntry
 from timesketch.apps.acl.models import AccessControlMixIn
@@ -41,6 +42,9 @@ class Sketch(AccessControlMixIn, models.Model):
             A query set.
         """
         return SavedView.objects.filter(sketch=self).exclude(name="")
+
+    def get_absolute_url(self):
+        return reverse('sketch', kwargs={'pk': self.pk})
 
     def __unicode__(self):
         return '%s' % self.title

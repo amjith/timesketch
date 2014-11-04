@@ -28,7 +28,7 @@ limitations under the License.
                     <div class="comment-box" ng-repeat="comment in comments">
                         <div class="comment">
                             <div class="comment-avatar">
-                                <img width="40px" class="img-rounded" src="{{ comment.user.profile.avatar }}">
+                                <img width="40px" class="img-circle" ng-src="{{ comment.user.profile.avatar }}">
                             </div>
                             <div class="comment-name">
                                 {{ comment.user.first_name }} {{ comment.user.last_name }}
@@ -46,8 +46,8 @@ limitations under the License.
                                       placeholder="Add a comment..." required></textarea>
                         </div>
                         <div class="form-group">
-                            <input type="submit" class="btn btn-success btn-sm" value="Post comment"></input>
-                            <input type="reset" class="btn btn-default btn-sm" value="Cancel"></input>
+                            <input type="submit" class="btn btn-success btn-sm" value="Post comment">
+                            <input type="reset" class="btn btn-default btn-sm" value="Cancel">
                         </div>
                     </form>
                 </div>

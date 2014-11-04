@@ -17,51 +17,83 @@ import re
 
 from django.shortcuts import render
 from django.shortcuts import redirect
-from django.http import HttpResponseForbidden
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 
+from timesketch.apps.acl.models import AccessControlEntry
 from timesketch.apps.sketch.models import Sketch
 from timesketch.apps.sketch.models import SketchTimeline
 from timesketch.apps.sketch.models import Timeline
 from timesketch.apps.sketch.models import SavedView
 
-
-@login_required
-def home(request):
-    """Renders the available sketches for the user."""
-    my_sketches = Sketch.objects.filter(user=request.user).order_by("-created")
-    public_sketches = set()
-    for sketch in Sketch.objects.all().exclude(user=request.user):
-        if sketch.is_public():
-            public_sketches.add(sketch)
-    context = {"my_sketches": my_sketches, "public_sketches": public_sketches}
-    return render(request, 'home.html', context)
+from django.views.generic import TemplateView
+from django.views.generic import DetailView
+from django.views.generic import CreateView
+from django.contrib.contenttypes.models import ContentType
+from django.utils.decorators import method_decorator
 
 
-@login_required
-def sketch(request, sketch_id):
-    """Renders specific sketch."""  
-    sketch = Sketch.objects.get(id=sketch_id)
-    if not sketch.can_read(request.user):
-        return HttpResponseForbidden()
-    saved_views = SavedView.objects.filter(sketch=sketch).exclude(
-        name="").order_by("created")
-    context = {"sketch": sketch, "views": saved_views}
-    return render(request, 'sketch.html', context)
+class LoginRequiredMixin(object):
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(LoginRequiredMixin, self).dispatch(*args, **kwargs)
 
 
-@login_required
-def new_sketch(request):
-    """Create new sketch."""
-    if request.method == 'POST':
-        title = request.POST.get('inputTitle')
-        description = request.POST.get('inputDescription')
-        obj, created = Sketch.objects.get_or_create(title=title,
-                                                    description=description,
-                                                    user=request.user)
-        return redirect("/sketch/%s/" % obj.id)
-    return render(request, 'new_sketch.html', {})
+class HomeView(LoginRequiredMixin, TemplateView):
+    """
+    Renders the landing page for the user.
+    """
+    template_name = 'home.html'
+
+    def _get_shared_sketches(self):
+        """
+        Get sketches that has been shared to the user.
+
+        Returns:
+            A set() of timesketch.apps.sketch.models.Sketch instances
+        """
+        content_type = ContentType.objects.get_for_model(Sketch)
+        ace_entries = AccessControlEntry.objects.filter(
+            content_type=content_type, user=self.request.user,
+            permission_read=True).order_by('-created')
+        result = set()
+        for ace in ace_entries:
+            _sketch = ace.content_object
+            # Don't include the users own sketches
+            if not _sketch.user == self.request.user:
+                result.add(_sketch)
+        return result
+
+    def get_context_data(self, **kwargs):
+        context = super(HomeView, self).get_context_data(**kwargs)
+        context['my_sketches'] = Sketch.objects.filter(
+            user=self.request.user).order_by('-created')
+        context['shared_sketches'] = self._get_shared_sketches()
+        return context
+
+
+class SketchView(LoginRequiredMixin, DetailView):
+    """
+    Renders the sketch overview page.
+    """
+    model = Sketch
+
+
+class SketchDetailView(SketchView):
+    def get_context_data(self, **kwargs):
+        context = super(SketchDetailView, self).get_context_data(**kwargs)
+        context['views'] = SavedView.objects.filter(
+            sketch=self.object).exclude(name="").order_by("created")
+        return context
+
+
+class SketchCreateView(LoginRequiredMixin, CreateView):
+    model = Sketch
+    fields = ['title', 'description']
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super(SketchCreateView, self).form_valid(form)
 
 
 @login_required
@@ -89,25 +121,6 @@ def add_timeline(request, sketch_id):
 
 
 @login_required
-def views(request, sketch_id):
-    """List of all saved views in a specific sketch."""
-    sketch = Sketch.objects.get(id=sketch_id)
-    views = SavedView.objects.filter(sketch=sketch).exclude(
-        name="").order_by("created")
-    context = {"sketch": sketch, "views": views}
-    return render(request, 'views.html', context)
-
-
-@login_required
-def timelines(request, sketch_id):
-    """List of all timelines in a specific sketch."""
-    sketch = Sketch.objects.get(id=sketch_id)
-    timelines = Timeline.objects.all()
-    context = {"sketch": sketch, "timelines": timelines}
-    return render(request, 'timelines.html', context)
-
-
-@login_required
 def explore(request, sketch_id):
     """Renders the search interface."""
     sketch = Sketch.objects.get(id=sketch_id)
@@ -117,18 +130,6 @@ def explore(request, sketch_id):
     context = {"timelines": timelines, "sketch": sketch, "view": view}
     return render(request, 'explore.html', context)
 
-
-@login_required
-def event(request, index_id, event_id):
-    """Renders the event page. This is used for ng-include in the tamplates."""
-    context = {"index_id": index_id, "event_id": event_id}
-    return render(request, 'event.html', context)
-
-
-@login_required
-def user_profile(request):
-    """Profile for the user."""
-    return render(request, 'profile.html', {})
 
 @login_required
 def edit_timeline(request, sketch_id, timeline_id):
@@ -157,13 +158,6 @@ def search_sketches(request):
                 if sketch.can_read(request.user):
                     result.add(sketch)
     return render(request, 'search.html', {'result': result})
-
-@login_required
-def settings(request, sketch_id):
-    """Settings for a sketch."""
-    sketch = Sketch.objects.get(id=sketch_id)
-    context = {"sketch": sketch}
-    return render(request, 'settings.html', context)
 
 
 @login_required

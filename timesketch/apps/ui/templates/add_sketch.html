@@ -25,14 +25,10 @@ limitations under the License.
 {% block body %}
 <body>
     <div class="card">
-        <form role="form" method="post" action="/sketch/new/"> {% csrf_token %}
+        <form role="form" method="post" action="{% url "add-sketch" %}"> {% csrf_token %}
             <div class="form-group">
-                <label for="inputTitle">Title</label>
-                <input type="text" class="form-control" name="inputTitle" id="inputTitle" placeholder="Title" required>
-            </div>
-            <div class="form-group">
-                <label for="inputDescription">Description</label>
-                <textarea class="form-control" name="inputDescription" id="inputDescription" rows="10" placeholder="Description" required></textarea>
+                <input type="text" class="form-control" name="title" id="title" placeholder="Title" required>
+                <textarea class="form-control" name="description" id="description" rows="10" placeholder="Description" required></textarea>
             </div>
             <button type="submit" class="btn btn-success">Submit</button>
         </form>

@@ -230,6 +230,7 @@ timesketch.controller('EventDetailCtrl', function($scope, $http, AddLabel) {
 
 timesketch.controller('EventCommentCtrl', function($scope, $http, AddComment) {
     $scope.getComments = function() {
+        console.log($scope.event)
         var params = {params: {
             index: $scope.event.es_index,
             id: $scope.event.es_id,

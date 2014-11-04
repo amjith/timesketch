@@ -20,6 +20,13 @@ from tastypie.api import Api
 from django.conf.urls.static import static
 
 from timesketch.apps.api import v1_resources
+from timesketch.apps.ui.views import HomeView
+from timesketch.apps.ui.views import SketchView
+from timesketch.apps.ui.views import SketchDetailView
+from timesketch.apps.ui.views import SketchCreateView
+
+from django.views.generic import TemplateView
+from django.contrib.auth.decorators import login_required
 
 
 v1_api = Api(api_name='v1')
@@ -42,23 +49,37 @@ urlpatterns = patterns(
     url(r'^admin/', include(admin.site.urls)),
 
     # Views
-    url(r'^$', 'timesketch.apps.ui.views.home'),
+    url(r'^$', HomeView.as_view(), name='home'),
+
+    url(r'^sketch/(?P<pk>\d+)/$', SketchDetailView.as_view(
+        template_name='sketch.html'), name='sketch'),
+
+    url(r'^sketch/(?P<pk>\d+)/views/$', SketchDetailView.as_view(
+        template_name='views.html'), name='sketch-views'),
+
+    url(r'^sketch/(?P<pk>\d+)/timelines/$', SketchView.as_view(
+        template_name='timelines.html'), name='sketch-timelines'),
+
+    url(r'^sketch/(?P<pk>\d+)/settings/$', SketchView.as_view(
+        template_name='settings.html'), name='sketch-settings'),
+
+    url(r'^sketch/add/$', SketchCreateView.as_view(
+        template_name='add_sketch.html'), name='add-sketch'),
+
+    url(r'^sketch/(?P<pk>\d+)/explore/event/', login_required(
+        TemplateView.as_view(template_name="event.html")), name='event'),
+
+    url(r'^user/profile/$', login_required(TemplateView.as_view(
+        template_name='profile.html')), name='user-profile'),
+
+
+
     url(r'^search/$', 'timesketch.apps.ui.views.search_sketches'),
-    url(r'^sketch/new/$', 'timesketch.apps.ui.views.new_sketch'),
-    url(r'^sketch/(\w+)/$', 'timesketch.apps.ui.views.sketch'),
-    url(r'^sketch/(\w+)/views/$',
-        'timesketch.apps.ui.views.views'),
-    url(r'^sketch/(\w+)/timelines/$', 'timesketch.apps.ui.views.timelines'),
-    url(r'^sketch/(\w+)/settings/$', 'timesketch.apps.ui.views.settings'),
-    url(r'^sketch/(\w+)/settings/sharing/$', 'timesketch.apps.ui.views.settings_sharing'),
-    url(r'^sketch/(\w+)/timelines/add/$',
-        'timesketch.apps.ui.views.add_timeline'),
-    url(r'^sketch/(\w+)/timelines/(\w+)/edit/$',
-        'timesketch.apps.ui.views.edit_timeline'),
+    url(r'^sketch/(\w+)/timelines/add/$', 'timesketch.apps.ui.views.add_timeline'),
+    url(r'^sketch/(\w+)/timelines/(\w+)/edit/$', 'timesketch.apps.ui.views.edit_timeline'),
     url(r'^sketch/(\w+)/explore/$', 'timesketch.apps.ui.views.explore'),
-    url(r'^sketch/(\w+)/explore/event/([a-zA-Z0-9_-]{22})/$',
-        'timesketch.apps.ui.views.event'),
-    url(r'^user/profile/$', 'timesketch.apps.ui.views.user_profile'),
+    url(r'^sketch/(\w+)/settings/sharing/$', 'timesketch.apps.ui.views.settings_sharing'),
+
 
     # API
     (r'^api/', include(v1_api.urls)),
