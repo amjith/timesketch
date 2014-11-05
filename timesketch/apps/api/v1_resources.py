@@ -157,6 +157,26 @@ class SearchResource(Resource):
             data['meta']['es_total_count'] = 0
         data['meta']['timeline_colors'] = timeline_colors
         data['meta']['timeline_names'] = timeline_names
+
+        # Aggregations
+        data['meta']['aggregations'] = {'data_type': [], 'per_hour': {}}
+        data['meta']['aggregations']['data_type'] = self.query_result['aggregations']['data_type']['buckets']
+        per_hour = {}
+        for n in self.query_result['aggregations']['time_histogram']['buckets']:
+            day_hour = n['key_as_string'].split(',')
+            day_hour = (int(day_hour[0]), int(day_hour[1]))
+            doc_count = n['doc_count']
+            if day_hour in per_hour:
+                per_hour[day_hour] += doc_count
+            else:
+                per_hour[day_hour] = doc_count
+
+        l = []
+        for k, v in per_hour.items():
+            l.append({"day": k[0], "hour": k[1], "doc_count": v})
+
+        data['meta']['aggregations']['per_hour'] = l
+
         return data
 
 

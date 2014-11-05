@@ -132,6 +132,7 @@ h3 {
     background: #fff;
     padding: 15px;
     border: 1px solid #e7e7e7;
+    box-shadow: 0 0 1px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.24);
 }
 
 .card h5 {

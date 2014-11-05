@@ -98,6 +98,20 @@ class ElasticSearchDataStore(datastore.DataStore):
                         "query": query
                     }
                 },
+                "aggregations": {
+                    "data_type": {
+                        "terms": {
+                            "field": "data_type",
+                            "size": 0}
+                    },
+                    "time_histogram": {
+                        "date_histogram": {
+                            "field": "datetime",
+                            "interval": "hour",
+                            "format": "e,H"
+                        },
+                        },
+                    },
                 "sort": {
                     "datetime": "asc"
                 }
