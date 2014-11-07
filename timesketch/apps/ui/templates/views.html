@@ -29,7 +29,7 @@ limitations under the License.
 {% block body %}
     <body>
     <div class="card">
-        {% if views %}
+        {% if sketch.views %}
             <table class="table table-hover">
                 <thead>
                 <tr>
@@ -38,7 +38,7 @@ limitations under the License.
                     <th width="50px"></th>
                 </tr>
                 <tbody>
-                {% for view in views %}
+                {% for view in sketch.views %}
                     <tr>
                         <td>
                             <div style="margin-top:5px;font-size: 1.1em;font-weight: bold"><a href="/sketch/{{ sketch.id }}/explore/?view={{ view.id }}">{{ view.name }}</a>

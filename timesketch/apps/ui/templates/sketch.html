@@ -29,7 +29,7 @@ limitations under the License.
 {% block body %}
     <body>
     <div class="card">
-        <h3>{{ object.title }}</h3>
+        <h3>{{ sketch.title }}</h3>
 
         <div id="description">
             <p>{{ sketch.description|linebreaks }}</p>
@@ -51,7 +51,7 @@ limitations under the License.
         {% endif %}
     </div>
 
-    {% if views %}
+    {% if sketch.views %}
         <div class="card">
             <table class="table table-hover">
                 <thead>
@@ -61,7 +61,7 @@ limitations under the License.
                     <th width="50px"></th>
                 </tr>
                 <tbody>
-                {% for view in views %}
+                {% for view in sketch.views %}
                     <tr>
                         <td>
                             <div style="margin-top:5px;font-size: 1.1em;font-weight: bold"><a href="explore/?view={{ view.id }}">{{ view.name }}</a></div>

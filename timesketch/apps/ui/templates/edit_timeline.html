@@ -27,12 +27,10 @@ limitations under the License.
 
     {% block body %}
         <body>
-
-        {{ object }}
-
         <div class="card">
             <form role="form" method="post" action="/sketch/{{ sketch.id }}/timelines/{{ timeline.id }}/"> {% csrf_token %}
                 <div class="form-group">
+                    <input type="hidden" name="timeline" value="{{ timeline.id }}" />
                     <input colorpicker colorpicker-with-input="true" class="form-control cpicker" name="color" type="text" ng-model="your_model" placeholder="{{ timeline.color }}" />
                 </div>
                 <button type="submit" class="btn btn-default">Save</button>

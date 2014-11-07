@@ -26,13 +26,6 @@ from timesketch.apps.acl.models import AccessControlMixIn
 
 class Sketch(AccessControlMixIn, models.Model):
     """Database model for a Sketch."""
-    user = models.ForeignKey(User)
-    acl = GenericRelation(AccessControlEntry)
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    timelines = models.ManyToManyField('SketchTimeline', blank=True)
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
 
     def get_named_views(self):
         """
@@ -41,7 +34,18 @@ class Sketch(AccessControlMixIn, models.Model):
         Returns:
             A query set.
         """
-        return SavedView.objects.filter(sketch=self).exclude(name="")
+        return SavedView.objects.filter(
+            sketch=self).exclude(name="").order_by("created")
+
+    user = models.ForeignKey(User)
+    acl = GenericRelation(AccessControlEntry)
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    timelines = models.ManyToManyField('SketchTimeline', blank=True)
+    views = property(get_named_views)
+
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
 
     def get_absolute_url(self):
         return reverse('sketch', kwargs={'pk': self.pk})

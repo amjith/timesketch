@@ -15,9 +15,17 @@
 
 import re
 
-from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.views.generic import View
+from django.views.generic import TemplateView
+from django.views.generic import DetailView
+from django.views.generic import CreateView
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
+from django.shortcuts import redirect
+
+from django.http import HttpResponseForbidden
 
 from timesketch.apps.acl.models import AccessControlEntry
 from timesketch.apps.sketch.models import Sketch
@@ -25,18 +33,15 @@ from timesketch.apps.sketch.models import SketchTimeline
 from timesketch.apps.sketch.models import Timeline
 from timesketch.apps.sketch.models import SavedView
 
-from django.views.generic import View
-from django.views.generic import TemplateView
-from django.views.generic import DetailView
-from django.views.generic import CreateView
-
-from django.contrib.contenttypes.models import ContentType
-from django.utils.decorators import method_decorator
-
 
 class LoginRequiredMixin(object):
     @method_decorator(login_required)
     def dispatch(self, *args, **kwargs):
+        try:
+            if not self.get_object().can_read(self.request.user):
+                return HttpResponseForbidden()
+        except AttributeError:
+            pass
         return super(LoginRequiredMixin, self).dispatch(*args, **kwargs)
 
 
@@ -59,10 +64,10 @@ class HomeView(LoginRequiredMixin, TemplateView):
             permission_read=True).order_by('-created')
         result = set()
         for ace in ace_entries:
-            _sketch = ace.content_object
+            sketch = ace.content_object
             # Don't include the users own sketches
-            if not _sketch.user == self.request.user:
-                result.add(_sketch)
+            if not sketch.user == self.request.user:
+                result.add(sketch)
         return result
 
     def get_context_data(self, **kwargs):
@@ -73,19 +78,8 @@ class HomeView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class SketchView(LoginRequiredMixin, DetailView):
-    """
-    Renders the sketch overview page.
-    """
+class SketchDetailView(LoginRequiredMixin, DetailView):
     model = Sketch
-
-
-class SketchDetailView(SketchView):
-    def get_context_data(self, **kwargs):
-        context = super(SketchDetailView, self).get_context_data(**kwargs)
-        context['views'] = SavedView.objects.filter(
-            sketch=self.object).exclude(name="").order_by("created")
-        return context
 
 
 class SketchCreateView(LoginRequiredMixin, CreateView):
@@ -130,17 +124,23 @@ class SketchTimelineCreateView(LoginRequiredMixin, TemplateView):
         return redirect('/sketch/%s/timelines/' % sketch.id)
 
 
-class SketchTimelineUpdateView(LoginRequiredMixin, TemplateView):
+class SketchTimelineUpdateView(LoginRequiredMixin, DetailView):
+    model = Sketch
     template_name = 'edit_timeline.html'
+
+    #def get_object(self):
+    #    pk = self.kwargs.get('sketch', None)
+    #    return Sketch.objects.get(pk=pk)
 
     def get_context_data(self, **kwargs):
         context = super(SketchTimelineUpdateView, self).get_context_data(**kwargs)
-        context['sketch'] = Sketch.objects.get(pk=kwargs['sketch'])
-        context['timeline'] = SketchTimeline.objects.get(pk=kwargs['timeline'])
+        sketch = self.get_object()
+        context['sketch'] = sketch
+        context['timeline'] = SketchTimeline.objects.get(pk=self.kwargs['timeline'])
         return context
 
     def post(self, request, *args, **kwargs):
-        sketch = Sketch.objects.get(pk=kwargs['sketch'])
+        sketch = self.get_object()
         timeline = SketchTimeline.objects.get(pk=kwargs['timeline'])
         color_in_hex = request.POST.get('color').replace('#', '')[:6]
         if re.match("[0-9a-fA-F]{3,6}", color_in_hex):
@@ -149,12 +149,11 @@ class SketchTimelineUpdateView(LoginRequiredMixin, TemplateView):
         return redirect('/sketch/%s/timelines/' % sketch.id)
 
 
-class SketchExploreView(SketchView):
-    template_name = 'explore.html'
+class SketchExploreView(LoginRequiredMixin, DetailView):
+    model = Sketch
 
     def get_context_data(self, **kwargs):
         context = super(SketchExploreView, self).get_context_data(**kwargs)
-
         sketch = self.object
         timelines = [t.timeline.datastore_index for t in sketch.timelines.all()]
         timelines = ",".join(timelines)
@@ -181,9 +180,11 @@ class SearchSketchView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class SketchSettingsAclView(LoginRequiredMixin, View):
+class SketchSettingsAclView(LoginRequiredMixin, DetailView):
+    model = Sketch
+
     def post(self, request, *args, **kwargs):
-        sketch = Sketch.objects.get(pk=kwargs['sketch'])
+        sketch = self.get_object()
         permission = request.POST.getlist('optionsPermission')[0]
         if permission == "public":
             sketch.make_public(request.user)
