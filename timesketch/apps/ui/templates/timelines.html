@@ -49,7 +49,7 @@ limitations under the License.
                         <td><div class="color-box" style="background: #{{ timeline.color }};{% ifequal timeline.color "ffffff" %}border:1px solid #d1d1d1;{% endifequal %}"></div></td>
                         <td><div style="margin-top:5px;">{{ timeline.timeline.title }}</div></td>
                         <td><div style="margin-top:5px;">{{ timeline.timeline.created|date:"Y-m-d H:i" }}</div></td>
-                        <td><a href="{{ timeline.id }}/edit/" class="btn btn-default">Edit</a></td>
+                        <td><a href="{{ timeline.id }}/" class="btn btn-default">Edit</a></td>
                     </tr>
                 {% endfor %}
                 </tbody>

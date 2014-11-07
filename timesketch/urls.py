@@ -24,6 +24,11 @@ from timesketch.apps.ui.views import HomeView
 from timesketch.apps.ui.views import SketchView
 from timesketch.apps.ui.views import SketchDetailView
 from timesketch.apps.ui.views import SketchCreateView
+from timesketch.apps.ui.views import SketchExploreView
+from timesketch.apps.ui.views import SketchTimelineUpdateView
+from timesketch.apps.ui.views import SketchTimelineCreateView
+from timesketch.apps.ui.views import SketchSettingsAclView
+from timesketch.apps.ui.views import SearchSketchView
 
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import login_required
@@ -63,23 +68,28 @@ urlpatterns = patterns(
     url(r'^sketch/(?P<pk>\d+)/settings/$', SketchView.as_view(
         template_name='settings.html'), name='sketch-settings'),
 
+    url(r'^sketch/(?P<sketch>\d+)/settings/sharing/$',
+        SketchSettingsAclView.as_view(), name='sketch-settings-acl'),
+
     url(r'^sketch/add/$', SketchCreateView.as_view(
         template_name='add_sketch.html'), name='add-sketch'),
 
     url(r'^sketch/(?P<pk>\d+)/explore/event/', login_required(
         TemplateView.as_view(template_name="event.html")), name='event'),
 
+    url(r'^sketch/(?P<pk>\d+)/explore/',
+        SketchExploreView.as_view(), name='explore'),
+
     url(r'^user/profile/$', login_required(TemplateView.as_view(
         template_name='profile.html')), name='user-profile'),
 
+    url(r'^sketch/(?P<sketch>\d+)/timelines/(?P<timeline>\d+)/$',
+        SketchTimelineUpdateView.as_view(), name='sketch-edit-timeline'),
 
+    url(r'^sketch/(?P<sketch>\d+)/timelines/add/$',
+        SketchTimelineCreateView.as_view(), name='sketch-add-timeline'),
 
-    url(r'^search/$', 'timesketch.apps.ui.views.search_sketches'),
-    url(r'^sketch/(\w+)/timelines/add/$', 'timesketch.apps.ui.views.add_timeline'),
-    url(r'^sketch/(\w+)/timelines/(\w+)/edit/$', 'timesketch.apps.ui.views.edit_timeline'),
-    url(r'^sketch/(\w+)/explore/$', 'timesketch.apps.ui.views.explore'),
-    url(r'^sketch/(\w+)/settings/sharing/$', 'timesketch.apps.ui.views.settings_sharing'),
-
+    url(r'^search/$', SearchSketchView.as_view(), name='search-sketch'),
 
     # API
     (r'^api/', include(v1_api.urls)),

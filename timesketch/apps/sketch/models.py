@@ -83,6 +83,9 @@ class SketchTimeline(models.Model):
         colors = ['ECEEE1', 'A8DACF', 'F0D697', 'D8D692', 'F2B7DC', '9798DE']
         return random.choice(colors)
 
+    def get_absolute_url(self):
+        return reverse('sketch', kwargs={'pk': self.pk})
+
     def __unicode__(self):
         return '%s' % self.timeline.title
 

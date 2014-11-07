@@ -15,7 +15,6 @@
 
 import re
 
-from django.shortcuts import render
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
@@ -26,9 +25,11 @@ from timesketch.apps.sketch.models import SketchTimeline
 from timesketch.apps.sketch.models import Timeline
 from timesketch.apps.sketch.models import SavedView
 
+from django.views.generic import View
 from django.views.generic import TemplateView
 from django.views.generic import DetailView
 from django.views.generic import CreateView
+
 from django.contrib.contenttypes.models import ContentType
 from django.utils.decorators import method_decorator
 
@@ -96,78 +97,96 @@ class SketchCreateView(LoginRequiredMixin, CreateView):
         return super(SketchCreateView, self).form_valid(form)
 
 
-@login_required
-def add_timeline(request, sketch_id):
-    """Add timeline to sketch."""
-    sketch = Sketch.objects.get(id=sketch_id)
-    if request.method == 'POST':
-        form_timelines = request.POST.getlist('timelines')
-        if form_timelines:
-            for timeline_id in form_timelines:
-                t = Timeline.objects.get(id=timeline_id)
-                sketch_timeline = SketchTimeline.objects.create(timeline=t)
+class SketchTimelineCreateView(LoginRequiredMixin, TemplateView):
+    template_name = 'add_timeline.html'
+
+    def _get_timelines(self, sketch):
+        timelines = set()
+        for timeline in Timeline.objects.all():
+            if not timeline in [x.timeline for x in sketch.timelines.all()]:
+                if timeline.can_read(self.request.user):
+                    timelines.add(timeline)
+        return timelines
+
+    def get_context_data(self, **kwargs):
+        context = super(SketchTimelineCreateView, self).get_context_data(**kwargs)
+        sketch = Sketch.objects.get(pk=kwargs['sketch'])
+        context['sketch'] = sketch
+        context['timelines'] = self._get_timelines(sketch)
+        return context
+
+    def post(self, request, *args, **kwargs):
+        sketch = Sketch.objects.get(pk=kwargs['sketch'])
+        timelines = request.POST.getlist('timelines')
+        if timelines:
+            for timeline_id in timelines:
+                timeline = Timeline.objects.get(id=timeline_id)
+                sketch_timeline = SketchTimeline.objects.create(
+                    timeline=timeline)
                 sketch_timeline.color = sketch_timeline.generate_color()
                 sketch_timeline.save()
                 sketch.timelines.add(sketch_timeline)
                 sketch.save()
-        return redirect("/sketch/%s/timelines/" % sketch.id)
-    timelines = set()
-    for timeline in Timeline.objects.all():
-        if not timeline in [x.timeline for x in sketch.timelines.all()]:
-            if timeline.can_read(request.user):
-                timelines.add(timeline)
-    return render(request, 'add_timeline.html', {'sketch': sketch,
-                                                 'timelines': timelines})
+        return redirect('/sketch/%s/timelines/' % sketch.id)
 
 
-@login_required
-def explore(request, sketch_id):
-    """Renders the search interface."""
-    sketch = Sketch.objects.get(id=sketch_id)
-    view = request.GET.get('view', 0)
-    timelines = [t.timeline.datastore_index for t in sketch.timelines.all()]
-    timelines = ",".join(timelines)
-    context = {"timelines": timelines, "sketch": sketch, "view": view}
-    return render(request, 'explore.html', context)
+class SketchTimelineUpdateView(LoginRequiredMixin, TemplateView):
+    template_name = 'edit_timeline.html'
 
+    def get_context_data(self, **kwargs):
+        context = super(SketchTimelineUpdateView, self).get_context_data(**kwargs)
+        context['sketch'] = Sketch.objects.get(pk=kwargs['sketch'])
+        context['timeline'] = SketchTimeline.objects.get(pk=kwargs['timeline'])
+        return context
 
-@login_required
-def edit_timeline(request, sketch_id, timeline_id):
-    """Edit timeline."""
-    sketch = Sketch.objects.get(id=sketch_id)
-    timeline = SketchTimeline.objects.get(id=timeline_id)
-    if request.method == 'POST':
+    def post(self, request, *args, **kwargs):
+        sketch = Sketch.objects.get(pk=kwargs['sketch'])
+        timeline = SketchTimeline.objects.get(pk=kwargs['timeline'])
         color_in_hex = request.POST.get('color').replace('#', '')[:6]
         if re.match("[0-9a-fA-F]{3,6}", color_in_hex):
             timeline.color = color_in_hex
             timeline.save()
         return redirect('/sketch/%s/timelines/' % sketch.id)
-    return render(
-        request, 'edit_timeline.html', {'sketch': sketch, 'timeline': timeline})
 
 
-@login_required
-def search_sketches(request):
-    """Search sketches."""
-    result = set()
-    if request.method == 'POST':
-        q = request.POST['search']
-        if q:
-            for sketch in Sketch.objects.filter(Q(title__icontains=q) |
-                                                Q(description__icontains=q)):
-                if sketch.can_read(request.user):
+class SketchExploreView(SketchView):
+    template_name = 'explore.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(SketchExploreView, self).get_context_data(**kwargs)
+
+        sketch = self.object
+        timelines = [t.timeline.datastore_index for t in sketch.timelines.all()]
+        timelines = ",".join(timelines)
+        context['sketch'] = sketch
+        context['timelines'] = timelines
+        context['view'] = self.request.GET.get('view', 0)
+        return context
+
+
+class SearchSketchView(LoginRequiredMixin, TemplateView):
+    template_name = 'search.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(SearchSketchView, self).get_context_data(**kwargs)
+        query = self.request.GET['query']
+        result = set()
+        if query:
+            for sketch in Sketch.objects.filter(
+                    Q(title__icontains=query) |
+                    Q(description__icontains=query)):
+                if sketch.can_read(self.request.user):
                     result.add(sketch)
-    return render(request, 'search.html', {'result': result})
+        context['result'] = result
+        return context
 
 
-@login_required
-def settings_sharing(request, sketch_id):
-    """Set sharing options."""
-    sketch = Sketch.objects.get(id=sketch_id)
-    if request.method == 'POST':
+class SketchSettingsAclView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        sketch = Sketch.objects.get(pk=kwargs['sketch'])
         permission = request.POST.getlist('optionsPermission')[0]
         if permission == "public":
             sketch.make_public(request.user)
         else:
             sketch.make_private(request.user)
-    return redirect("/sketch/%i/" % sketch.id)
+        return redirect('/sketch/%i/' % sketch.id)
