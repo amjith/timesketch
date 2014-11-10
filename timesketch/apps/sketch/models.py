@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This module implements timesketch Django database models."""
+# ToDo: Clean up the models (see github issue #25)
 
 import random
 
@@ -25,27 +26,35 @@ from timesketch.apps.acl.models import AccessControlMixIn
 
 
 class Sketch(AccessControlMixIn, models.Model):
-    """Database model for a Sketch."""
-
-    def get_named_views(self):
-        """
-        Get named views for this sketch. Used in templates.
-
-        Returns:
-            A query set.
-        """
-        return SavedView.objects.filter(
-            sketch=self).exclude(name="").order_by("created")
-
+    """Database model for a Sketch entry."""
     user = models.ForeignKey(User)
     acl = GenericRelation(AccessControlEntry)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    timelines = models.ManyToManyField('SketchTimeline', blank=True)
-    views = property(get_named_views)
-
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+
+    @property
+    def timelines(self):
+        """
+        Get timelines for this sketch. This is used in both Django views and
+        templates.
+
+        Returns:
+            A Django QuerySet for SketchTimeline.
+        """
+        return SketchTimeline.objects.filter(sketch=self)
+
+    # ToDo: Make this a property
+    def get_named_views(self):
+        """
+        Get named saved views for this sketch.
+
+        Returns:
+            A Django QuerySet for SavedView.
+        """
+        return SavedView.objects.filter(
+            sketch=self).exclude(name="").order_by("created")
 
     def get_absolute_url(self):
         return reverse('sketch', kwargs={'pk': self.pk})
@@ -70,6 +79,8 @@ class Timeline(AccessControlMixIn, models.Model):
 
 class SketchTimeline(models.Model):
     """Database model for annotating a timeline."""
+    user = models.ForeignKey(User)
+    sketch = models.ForeignKey(Sketch)
     timeline = models.ForeignKey(Timeline)
     color = models.CharField(max_length=6, default="FFFFFF")
     visible = models.BooleanField(default=True)

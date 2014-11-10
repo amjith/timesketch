@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This module implements timesketch Django views."""
+# ToDo: Refactor this to class based views (see github issue #22)
 
 import re
 
