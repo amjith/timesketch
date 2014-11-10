@@ -68,7 +68,7 @@ limitations under the License.
 
         <select class="select select-view" onchange="location = this.options[this.selectedIndex].value;">
             <option disabled selected>Choose view</option>
-            {% for view in sketch.get_named_views %}
+            {% for view in sketch.views %}
                 <option value="?view={{ view.id }}">{{ view.name }}</option>
             {% endfor %}
         </select>

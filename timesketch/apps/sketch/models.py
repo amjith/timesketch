@@ -45,10 +45,11 @@ class Sketch(AccessControlMixIn, models.Model):
         """
         return SketchTimeline.objects.filter(sketch=self)
 
-    # ToDo: Make this a property
-    def get_named_views(self):
+    @property
+    def views(self):
         """
-        Get named saved views for this sketch.
+        Get named saved views for this sketch. This is used in both Django views
+        and templates.
 
         Returns:
             A Django QuerySet for SavedView.

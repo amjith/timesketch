@@ -18,7 +18,6 @@ import re
 
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-from django.views.generic import View
 from django.views.generic import TemplateView
 from django.views.generic import DetailView
 from django.views.generic import CreateView
@@ -32,7 +31,6 @@ from timesketch.apps.acl.models import AccessControlEntry
 from timesketch.apps.sketch.models import Sketch
 from timesketch.apps.sketch.models import SketchTimeline
 from timesketch.apps.sketch.models import Timeline
-from timesketch.apps.sketch.models import SavedView
 
 
 class LoginRequiredMixin(object):
@@ -54,7 +52,7 @@ class HomeView(LoginRequiredMixin, TemplateView):
 
     def _get_shared_sketches(self):
         """
-        Get sketches that has been shared to the user.
+        Get sketches that has been shared with the user.
 
         Returns:
             A set() of timesketch.apps.sketch.models.Sketch instances
