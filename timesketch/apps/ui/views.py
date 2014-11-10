@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This module implements timesketch Django views."""
-# ToDo: Refactor this to class based views (see github issue #22)
 
 import re
 
@@ -46,7 +45,7 @@ class LoginRequiredMixin(object):
 
 class HomeView(LoginRequiredMixin, TemplateView):
     """
-    Renders the landing page for the user.
+    Renders home page for the user.
     """
     template_name = 'home.html'
 
@@ -77,91 +76,6 @@ class HomeView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class SketchDetailView(LoginRequiredMixin, DetailView):
-    model = Sketch
-
-
-class SketchCreateView(LoginRequiredMixin, CreateView):
-    model = Sketch
-    fields = ['title', 'description']
-
-    def form_valid(self, form):
-        form.instance.user = self.request.user
-        return super(SketchCreateView, self).form_valid(form)
-
-
-class SketchTimelineCreateView(LoginRequiredMixin, TemplateView):
-    template_name = 'add_timeline.html'
-
-    def _get_timelines(self, sketch):
-        timelines = set()
-        for timeline in Timeline.objects.all():
-            if not timeline in [x.timeline for x in sketch.timelines.all()]:
-                if timeline.can_read(self.request.user):
-                    timelines.add(timeline)
-        return timelines
-
-    def get_context_data(self, **kwargs):
-        context = super(SketchTimelineCreateView, self).get_context_data(**kwargs)
-        sketch = Sketch.objects.get(pk=kwargs['sketch'])
-        context['sketch'] = sketch
-        context['timelines'] = self._get_timelines(sketch)
-        return context
-
-    def post(self, request, *args, **kwargs):
-        sketch = Sketch.objects.get(pk=kwargs['sketch'])
-        timelines = request.POST.getlist('timelines')
-        if timelines:
-            for timeline_id in timelines:
-                timeline = Timeline.objects.get(id=timeline_id)
-                sketch_timeline = SketchTimeline.objects.create(
-                    timeline=timeline)
-                sketch_timeline.color = sketch_timeline.generate_color()
-                sketch_timeline.save()
-                sketch.timelines.add(sketch_timeline)
-                sketch.save()
-        return redirect('/sketch/%s/timelines/' % sketch.id)
-
-
-class SketchTimelineUpdateView(LoginRequiredMixin, DetailView):
-    model = Sketch
-    template_name = 'edit_timeline.html'
-
-    #def get_object(self):
-    #    pk = self.kwargs.get('sketch', None)
-    #    return Sketch.objects.get(pk=pk)
-
-    def get_context_data(self, **kwargs):
-        context = super(SketchTimelineUpdateView, self).get_context_data(**kwargs)
-        sketch = self.get_object()
-        context['sketch'] = sketch
-        context['timeline'] = SketchTimeline.objects.get(pk=self.kwargs['timeline'])
-        return context
-
-    def post(self, request, *args, **kwargs):
-        sketch = self.get_object()
-        timeline = SketchTimeline.objects.get(pk=kwargs['timeline'])
-        color_in_hex = request.POST.get('color').replace('#', '')[:6]
-        if re.match("[0-9a-fA-F]{3,6}", color_in_hex):
-            timeline.color = color_in_hex
-            timeline.save()
-        return redirect('/sketch/%s/timelines/' % sketch.id)
-
-
-class SketchExploreView(LoginRequiredMixin, DetailView):
-    model = Sketch
-
-    def get_context_data(self, **kwargs):
-        context = super(SketchExploreView, self).get_context_data(**kwargs)
-        sketch = self.object
-        timelines = [t.timeline.datastore_index for t in sketch.timelines.all()]
-        timelines = ",".join(timelines)
-        context['sketch'] = sketch
-        context['timelines'] = timelines
-        context['view'] = self.request.GET.get('view', 0)
-        return context
-
-
 class SearchSketchView(LoginRequiredMixin, TemplateView):
     template_name = 'search.html'
 
@@ -179,14 +93,82 @@ class SearchSketchView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class SketchSettingsAclView(LoginRequiredMixin, DetailView):
+class SketchDetailBaseView(LoginRequiredMixin, DetailView):
     model = Sketch
 
+
+class SketchCreateView(LoginRequiredMixin, CreateView):
+    model = Sketch
+    fields = ['title', 'description']
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super(SketchCreateView, self).form_valid(form)
+
+
+class SketchTimelineCreateView(SketchDetailBaseView):
+    template_name = 'add_timeline.html'
+
+    # ToDo: Remove and move to a search approach instead.
+    def get_timelines(self, sketch):
+        timelines = set()
+        for timeline in Timeline.objects.all():
+            if not timeline in [x.timeline for x in sketch.timelines]:
+                if timeline.can_read(self.request.user):
+                    timelines.add(timeline)
+        return timelines
+
+    def get_context_data(self, **kwargs):
+        context = super(
+            SketchTimelineCreateView, self).get_context_data(**kwargs)
+        context['timelines'] = self.get_timelines(self.object)
+        return context
+
     def post(self, request, *args, **kwargs):
-        sketch = self.get_object()
+        timelines = request.POST.getlist('timelines')
+        if timelines:
+            for timeline_id in timelines:
+                timeline = Timeline.objects.get(pk=timeline_id)
+                sketch_timeline = SketchTimeline.objects.create(
+                    timeline=timeline, sketch=self.get_object(),
+                    user=request.user)
+                sketch_timeline.color = sketch_timeline.generate_color()
+                sketch_timeline.save()
+        return redirect('/sketch/%s/timelines/' % self.get_object().id)
+
+
+class SketchTimelineUpdateView(SketchDetailBaseView):
+    def get_context_data(self, **kwargs):
+        context = super(
+            SketchTimelineUpdateView, self).get_context_data(**kwargs)
+        context['timeline'] = SketchTimeline.objects.get(
+            pk=self.kwargs['timeline'])
+        return context
+
+    def post(self, request, *args, **kwargs):
+        timeline = SketchTimeline.objects.get(pk=kwargs['timeline'])
+        color_in_hex = request.POST.get('color').replace('#', '')[:6]
+        if re.match("[0-9a-fA-F]{3,6}", color_in_hex):
+            timeline.color = color_in_hex
+            timeline.save()
+        return redirect('/sketch/%s/timelines/' % self.get_object().id)
+
+
+class SketchExploreView(SketchDetailBaseView):
+    def get_context_data(self, **kwargs):
+        context = super(SketchExploreView, self).get_context_data(**kwargs)
+        indexes = [t.timeline.datastore_index for t in self.object.timelines]
+        indexes = ",".join(indexes)
+        context['timelines'] = indexes
+        context['view'] = self.request.GET.get('view', 0)
+        return context
+
+
+class SketchSettingsAclView(SketchDetailBaseView):
+    def post(self, request, *args, **kwargs):
         permission = request.POST.getlist('optionsPermission')[0]
         if permission == "public":
-            sketch.make_public(request.user)
+            self.get_object().make_public(request.user)
         else:
-            sketch.make_private(request.user)
-        return redirect('/sketch/%i/' % sketch.id)
+            self.get_object().make_private(request.user)
+        return redirect('/sketch/%i/' % self.get_object().id)

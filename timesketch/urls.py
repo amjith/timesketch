@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 
 from timesketch.apps.api import v1_resources
 from timesketch.apps.ui.views import HomeView
-from timesketch.apps.ui.views import SketchDetailView
+from timesketch.apps.ui.views import SketchDetailBaseView
 from timesketch.apps.ui.views import SketchCreateView
 from timesketch.apps.ui.views import SketchExploreView
 from timesketch.apps.ui.views import SketchTimelineUpdateView
@@ -55,16 +55,16 @@ urlpatterns = patterns(
     # Views
     url(r'^$', HomeView.as_view(), name='home'),
 
-    url(r'^sketch/(?P<pk>\d+)/$', SketchDetailView.as_view(
+    url(r'^sketch/(?P<pk>\d+)/$', SketchDetailBaseView.as_view(
         template_name='sketch.html'), name='sketch'),
 
-    url(r'^sketch/(?P<pk>\d+)/views/$', SketchDetailView.as_view(
+    url(r'^sketch/(?P<pk>\d+)/views/$', SketchDetailBaseView.as_view(
         template_name='views.html'), name='sketch-views'),
 
-    url(r'^sketch/(?P<pk>\d+)/timelines/$', SketchDetailView.as_view(
+    url(r'^sketch/(?P<pk>\d+)/timelines/$', SketchDetailBaseView.as_view(
         template_name='timelines.html'), name='sketch-timelines'),
 
-    url(r'^sketch/(?P<pk>\d+)/settings/$', SketchDetailView.as_view(
+    url(r'^sketch/(?P<pk>\d+)/settings/$', SketchDetailBaseView.as_view(
         template_name='settings.html'), name='sketch-settings'),
 
     url(r'^sketch/(?P<pk>\d+)/settings/sharing/$',
@@ -83,9 +83,10 @@ urlpatterns = patterns(
         template_name='profile.html')), name='user-profile'),
 
     url(r'^sketch/(?P<pk>\d+)/timelines/(?P<timeline>\d+)/$',
-        SketchTimelineUpdateView.as_view(), name='sketch-edit-timeline'),
+        SketchTimelineUpdateView.as_view(
+            template_name='edit_timeline.html'), name='sketch-edit-timeline'),
 
-    url(r'^sketch/(?P<sketch>\d+)/timelines/add/$',
+    url(r'^sketch/(?P<pk>\d+)/timelines/add/$',
         SketchTimelineCreateView.as_view(), name='sketch-add-timeline'),
 
     url(r'^search/$', SearchSketchView.as_view(), name='search-sketch'),
