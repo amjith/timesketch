@@ -46,15 +46,19 @@ class ElasticSearchDataStore(datastore.DataStore):
         if filters.get("time_start", None):
             query = {
                 "query": {
-                    "query_string": {
-                        "query": query
-                    }
-                },
-                "filter": {
-                    "range": {
-                        "datetime": {
-                            "gte": filters['time_start'],
-                            "lte": filters['time_end']
+                    "filtered": {
+                        "query": {
+                            "query_string": {
+                                "query": query
+                            }
+                        },
+                        "filter": {
+                            "range": {
+                                "datetime": {
+                                    "gte": filters['time_start'],
+                                    "lte": filters['time_end']
+                                }
+                            }
                         }
                     }
                 },
@@ -65,30 +69,31 @@ class ElasticSearchDataStore(datastore.DataStore):
         elif filters.get("star", None):
             query = {
                 "query": {
-                    "match_all": {}
-                },
-                "filter": {
-                    "nested": {
-                        "path": "timesketch_label", "filter": {
-                        "bool": {
-                            "must": [
-                                {
-                                    "term": {
-                                        "timesketch_label.name": "__ts_star"
-                                    }
-                                },
-                                {
-                                    "term": {
-                                        "timesketch_label.sketch": str(sketch)
-                                    }
+                    "filtered": {
+                        "filter": {
+                            "nested": {
+                                "path": "timesketch_label", "filter": {
+                                "bool": {
+                                    "must": [
+                                        {
+                                            "term": {
+                                                "timesketch_label.name": "__ts_star"
+                                            }
+                                        },
+                                        {
+                                            "term": {
+                                                "timesketch_label.sketch": str(sketch)
+                                            }
+                                        }
+                                    ]
                                 }
-                            ]
-                        }
+                                }
+                            }
                         }
                     }
                 },
                 "sort": {
-                    "datetime": "asc"
+                        "datetime": "asc"
                 }
             }
         else:
@@ -98,28 +103,31 @@ class ElasticSearchDataStore(datastore.DataStore):
                         "query": query
                     }
                 },
-                "aggregations": {
-                    "data_type": {
-                        "terms": {
-                            "field": "data_type",
-                            "size": 0}
-                    },
-                    "time_histogram": {
-                        "date_histogram": {
-                            "field": "datetime",
-                            "interval": "hour",
-                            "format": "e,H"
-                        },
-                        },
-                    },
                 "sort": {
                     "datetime": "asc"
                 }
             }
 
+        # Aggregations
+        aggregations = {
+            "data_type": {
+                "terms": {
+                    "field": "data_type",
+                    "size": 0}
+            },
+            "time_histogram": {
+                "date_histogram": {
+                    "field": "datetime",
+                    "interval": "hour",
+                    "format": "e,H"
+                },
+            },
+        }
+        query['aggregations'] = aggregations
+        import json
+        print json.dumps(query, indent=2)
         return self.client.search(query, index=self.index_list,
                                   doc_type="plaso_event", size=500)
-
 
     def get_single_event(self, event_id):
         """Get singel event document form elasticsearch

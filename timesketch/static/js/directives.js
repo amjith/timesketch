@@ -18,42 +18,48 @@ limitations under the License.
 
 var directives = angular.module('timesketch.directives', []);
 
-directives.directive('d3Heatmap', ['d3Service', function(d3Service) {
+directives.directive('d3Heatmap', ['$window', '$timeout', 'd3Service', function($window, $timeout, d3Service) {
     return {
         restrict: 'EA',
         scope: {},
         link: function(scope, element, attrs) {
             d3Service.d3().then(function(d3) {
-                // our d3 code will go here
-
-                    var margin = { top: 50, right: 0, bottom: 100, left: 30 };
-                    var svgWidth = 1635 - margin.top - margin.bottom;
-                    var svgHeight = 500 - margin.top - margin.bottom;
-                    var rectSize = Math.floor(svgWidth / 24);
-                    var days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-                    var hours = ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"];
-
-                    var svg = d3.select("#chart").append("svg")
-                        .attr("width", svgWidth + margin.left + margin.right)
-                        .attr("height", svgHeight + margin.top + margin.bottom)
-                        .append("g")
-                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-
                 scope.$parent.$watch('meta', function (newval, oldval) {
-
+                    var data = false
                     if(scope.$parent.meta) {
-                        var data = scope.$parent.meta.aggregations.per_hour;
-                    } else {
-                        var data = false
+                        var data = newval['aggregations']['per_hour'];
                     }
                     return scope.render(data)
                 }, true);
 
+                $window.onresize = function() {
+                    scope.$apply();
+                };
+
+                scope.$watch(function() {
+                    return angular.element($window)[0].innerWidth;
+                }, function() {
+                    if(scope.$parent.meta) {
+                        scope.render(scope.$parent.meta['aggregations']['per_hour']);
+                    }
+                });
+
                 scope.render = function(data) {
+                    if (!data) return;
+                    d3.select('svg').remove();
 
-                    svg.selectAll('*').remove();
+                    var margin = { top: 20, right: 10, bottom: 20, left: 27 },
+                        svgWidth = d3.select(element[0])[0][0].offsetWidth - margin.left - margin.right,
+                        rectSize = Math.floor(svgWidth / 24),
+                        svgHeight = parseInt(rectSize * 8) - margin.top - margin.bottom,
+                        days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+                        hours = ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"];
 
+                    var svg = d3.select(element[0]).append("svg")
+                        .attr("width", svgWidth + margin.left + margin.right)
+                        .attr("height", svgHeight + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
                     var max_value_initial = d3.max(data, function (d) {
                         return d.doc_count;
@@ -120,8 +126,7 @@ directives.directive('d3Heatmap', ['d3Service', function(d3Service) {
                         .attr("height", rectSize)
                         .style("fill", colors[0]);
 
-
-                    heatMap.transition().duration(700)
+                    heatMap.transition().duration(500)
                         .style("fill", function (d) {
                             return colorScale(d.doc_count);
                         });
