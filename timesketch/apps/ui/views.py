@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This module implements timesketch Django views."""
+# ToDo: Refactor this to class based views (see github issue #22)
 
 import re
 
@@ -72,12 +73,11 @@ def add_timeline(request, sketch_id):
         form_timelines = request.POST.getlist('timelines')
         if form_timelines:
             for timeline_id in form_timelines:
-                t = Timeline.objects.get(id=timeline_id)
-                sketch_timeline = SketchTimeline.objects.create(timeline=t)
+                timeline = Timeline.objects.get(id=timeline_id)
+                sketch_timeline = SketchTimeline.objects.create(
+                    timeline=timeline, sketch=sketch, user=request.user)
                 sketch_timeline.color = sketch_timeline.generate_color()
                 sketch_timeline.save()
-                sketch.timelines.add(sketch_timeline)
-                sketch.save()
         return redirect("/sketch/%s/timelines/" % sketch.id)
     timelines = set()
     for timeline in Timeline.objects.all():
