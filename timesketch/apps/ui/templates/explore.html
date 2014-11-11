@@ -113,6 +113,12 @@ limitations under the License.
         {% endfor %}
     </div>
 
+    <div class="card">
+        <div d3-heatmap>
+            <div id="chart"></div>
+        </div>
+    </div>
+
     <!-- Show big red warning if > 500 results -->
     {% verbatim %}
     <div ng-show="noisy" class="card card-alert">

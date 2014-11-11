@@ -18,6 +18,122 @@ limitations under the License.
 
 var directives = angular.module('timesketch.directives', []);
 
+directives.directive('d3Heatmap', ['d3Service', function(d3Service) {
+    return {
+        restrict: 'EA',
+        scope: {},
+        link: function(scope, element, attrs) {
+            d3Service.d3().then(function(d3) {
+                // our d3 code will go here
+
+                    var margin = { top: 50, right: 0, bottom: 100, left: 30 };
+                    var svgWidth = 1635 - margin.top - margin.bottom;
+                    var svgHeight = 500 - margin.top - margin.bottom;
+                    var rectSize = Math.floor(svgWidth / 24);
+                    var days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+                    var hours = ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"];
+
+                    var svg = d3.select("#chart").append("svg")
+                        .attr("width", svgWidth + margin.left + margin.right)
+                        .attr("height", svgHeight + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+                scope.$parent.$watch('meta', function (newval, oldval) {
+
+                    if(scope.$parent.meta) {
+                        var data = scope.$parent.meta.aggregations.per_hour;
+                    } else {
+                        var data = false
+                    }
+                    return scope.render(data)
+                }, true);
+
+                scope.render = function(data) {
+
+                    svg.selectAll('*').remove();
+
+
+                    var max_value_initial = d3.max(data, function (d) {
+                        return d.doc_count;
+                    });
+                    var max_value = max_value_initial;
+
+                    if (max_value_initial > 100000) {
+                        max_value = max_value_initial / 10;
+                    } else if (max_value_initial == 0) {
+                        max_value = 1
+                    }
+
+                    var colors = [];
+                    var genColor = d3.scale.linear()
+                        .domain([0, max_value / 2, max_value])
+                        .range(["white", "#3498db", "red"]);
+
+                    for (var i = 0; i < max_value; i++) {
+                        colors.push(genColor(i));
+                    }
+                    var num_buckets = colors.length;
+
+                    var colorScale = d3.scale.quantile()
+                        .domain([0, num_buckets - 1, max_value_initial])
+                        .range(colors);
+
+                    var dayLabels = svg.selectAll(".dayLabel")
+                        .data(days)
+                        .enter().append("text")
+                        .text(function (d) {
+                            return d;
+                        })
+                        .attr("x", 0)
+                        .attr("y", function (d, i) {
+                            return i * rectSize;
+                        })
+                        .style("text-anchor", "end")
+                        .attr("transform", "translate(-6," + rectSize / 1.5 + ")");
+
+                    var hourLabels = svg.selectAll(".hourLabel")
+                        .data(hours)
+                        .enter().append("text")
+                        .text(function (d) {
+                            return d;
+                        })
+                        .attr("x", function (d, i) {
+                            return i * rectSize;
+                        })
+                        .attr("y", 0)
+                        .style("text-anchor", "middle")
+                        .attr("transform", "translate(" + rectSize / 2 + ", -6)");
+
+                    var heatMap = svg.selectAll(".hour")
+                        .data(data)
+                        .enter().append("rect")
+                        .attr("x", function (d) {
+                            return (d.hour) * rectSize;
+                        })
+                        .attr("y", function (d) {
+                            return (d.day - 1) * rectSize;
+                        })
+                        .attr("class", "bordered")
+                        .attr("width", rectSize)
+                        .attr("height", rectSize)
+                        .style("fill", colors[0]);
+
+
+                    heatMap.transition().duration(700)
+                        .style("fill", function (d) {
+                            return colorScale(d.doc_count);
+                        });
+
+                    heatMap.append("title").text(function (d) {
+                        return d.doc_count;
+                    });
+                }
+            });
+        }};
+}]);
+
 directives.directive("butterbar", function() {
     return {
         restrict : "A",
