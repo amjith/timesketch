@@ -73,20 +73,20 @@ class ElasticSearchDataStore(datastore.DataStore):
                         "filter": {
                             "nested": {
                                 "path": "timesketch_label", "filter": {
-                                "bool": {
-                                    "must": [
-                                        {
-                                            "term": {
-                                                "timesketch_label.name": "__ts_star"
+                                    "bool": {
+                                        "must": [
+                                            {
+                                                "term": {
+                                                    "timesketch_label.name": "__ts_star"
+                                                }
+                                            },
+                                            {
+                                                "term": {
+                                                    "timesketch_label.sketch": str(sketch)
+                                                }
                                             }
-                                        },
-                                        {
-                                            "term": {
-                                                "timesketch_label.sketch": str(sketch)
-                                            }
-                                        }
-                                    ]
-                                }
+                                        ]
+                                    }
                                 }
                             }
                         }
@@ -99,8 +99,12 @@ class ElasticSearchDataStore(datastore.DataStore):
         else:
             query = {
                 "query": {
-                    "query_string": {
-                        "query": query
+                    "filtered": {
+                        "query": {
+                            "query_string": {
+                                "query": query
+                            }
+                        }
                     }
                 },
                 "sort": {

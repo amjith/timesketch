@@ -21,12 +21,16 @@ var directives = angular.module('timesketch.directives', []);
 directives.directive('d3Heatmap', ['$window', '$timeout', 'd3Service', function($window, $timeout, d3Service) {
     return {
         restrict: 'EA',
-        scope: {},
+        scope: {
+            data: '='
+        },
         link: function(scope, element, attrs) {
             d3Service.d3().then(function(d3) {
+
                 scope.$parent.$watch('meta', function (newval, oldval) {
                     var data = false
                     if(scope.$parent.meta) {
+
                         var data = newval['aggregations']['per_hour'];
                     }
                     return scope.render(data)
@@ -46,6 +50,8 @@ directives.directive('d3Heatmap', ['$window', '$timeout', 'd3Service', function(
 
                 scope.render = function(data) {
                     if (!data) return;
+
+
                     d3.select('svg').remove();
 
                     var margin = { top: 20, right: 10, bottom: 20, left: 27 },
@@ -132,7 +138,8 @@ directives.directive('d3Heatmap', ['$window', '$timeout', 'd3Service', function(
                         });
 
                     heatMap.append("title").text(function (d) {
-                        return d.doc_count;
+
+                        return d.doc_count + ' events this day';
                     });
                 }
             });

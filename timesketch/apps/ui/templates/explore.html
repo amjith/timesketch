@@ -113,9 +113,11 @@ limitations under the License.
         {% endfor %}
     </div>
 
+    {% verbatim %}
     <div class="card">
-        <div d3-heatmap></div>
+        <div d3-heatmap data="meta.aggregations.per_hour"></div>
     </div>
+    {% endverbatim %}
 
     <!-- Show big red warning if > 500 results -->
     {% verbatim %}
