@@ -51,11 +51,10 @@ directives.directive('d3Heatmap', ['$window', '$timeout', 'd3Service', function(
                 scope.render = function(data) {
                     if (!data) return;
 
-
                     d3.select('svg').remove();
 
-                    var margin = { top: 20, right: 10, bottom: 20, left: 27 },
-                        svgWidth = d3.select(element[0])[0][0].offsetWidth - margin.left - margin.right,
+                    var margin = { top: 20, right: 30, bottom: 20, left: 27 },
+                        svgWidth = d3.select("#search-card")[0][0].offsetWidth - margin.left - margin.right,
                         rectSize = Math.floor(svgWidth / 24),
                         svgHeight = parseInt(rectSize * 8) - margin.top - margin.bottom,
                         days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],

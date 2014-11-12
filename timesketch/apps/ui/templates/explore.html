@@ -51,7 +51,7 @@ limitations under the License.
     </div>
 
     <!-- Search card -->
-    <div class="card">
+    <div class="card" id="search-card">
         <form class="form-inline" ng-submit="search()">
             <div class="input-group">
                 <input ng-model="query" type="search" class="form-control" id="search-input" placeholder="Search" autofocus>
@@ -113,17 +113,18 @@ limitations under the License.
         {% endfor %}
     </div>
 
-    {% verbatim %}
-    <div class="card">
-        <div d3-heatmap data="meta.aggregations.per_hour"></div>
-    </div>
-    {% endverbatim %}
-
     <!-- Show big red warning if > 500 results -->
     {% verbatim %}
     <div ng-show="noisy" class="card card-alert">
         <h4>I will only show you the first 500 events</h4>
         <p>May I suggest you narrow down the results with a filter?</p>
+    </div>
+    {% endverbatim %}
+
+    <!-- Heatmap -->
+    {% verbatim %}
+    <div class="card" ng-hide="showHeatmap">
+        <div d3-heatmap data="meta.aggregations.per_hour"></div>
     </div>
     {% endverbatim %}
 
