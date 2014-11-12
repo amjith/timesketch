@@ -81,7 +81,7 @@ directives.directive('d3Heatmap', ['$window', '$timeout', 'd3Service', function(
                     var colors = [];
                     var genColor = d3.scale.linear()
                         .domain([0, max_value / 2, max_value])
-                        .range(["white", "#3498db", "red"]);
+                        .range(["#f1f1f1", "#3498db", "red"]);
 
                     for (var i = 0; i < max_value; i++) {
                         colors.push(genColor(i));
@@ -121,12 +121,8 @@ directives.directive('d3Heatmap', ['$window', '$timeout', 'd3Service', function(
                     var heatMap = svg.selectAll(".hour")
                         .data(data)
                         .enter().append("rect")
-                        .attr("x", function (d) {
-                            return (d.hour) * rectSize;
-                        })
-                        .attr("y", function (d) {
-                            return (d.day - 1) * rectSize;
-                        })
+                        .attr("x", function (d) {return (d.hour) * rectSize;})
+                        .attr("y", function (d) {return (d.day - 1) * rectSize;})
                         .attr("class", "bordered")
                         .attr("width", rectSize)
                         .attr("height", rectSize)
@@ -134,11 +130,13 @@ directives.directive('d3Heatmap', ['$window', '$timeout', 'd3Service', function(
 
                     heatMap.transition().duration(500)
                         .style("fill", function (d) {
+                            if (d.doc_count < 1) {
+                                return "#ffffff"
+                            }
                             return colorScale(d.doc_count);
                         });
 
-                    heatMap.append("title").text(function (d) {
-
+                    heatMap.append("title").text(function(d) {
                         return d.doc_count + ' events this day';
                     });
                 }
