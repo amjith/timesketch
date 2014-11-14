@@ -80,7 +80,7 @@ h3 {
     bottom: 95px;
     width:190px;
     overflow: hidden;
-    padding-left:20px;
+    padding-left:30px;
     padding-top:10px;
 }
 
@@ -139,7 +139,7 @@ h3 {
 .card h5 {
     font-weight: normal;
     text-transform: uppercase;
-    color:#999;
+    color:#555;
     margin-top:0px;
     letter-spacing: .6px;
     font-size: 0.9em;
